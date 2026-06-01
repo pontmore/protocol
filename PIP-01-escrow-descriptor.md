@@ -155,6 +155,114 @@ The public swap state machine SHOULD record:
 
 Raw invoice payloads, settlement secrets, and other sensitive Lightning material SHOULD stay in the companion private message lane unless explicit disclosure is required.
 
+## Canonical Subtype: `custodial_escrow`
+
+`custodial_escrow` is a canonical escrow subtype for swaps where an escrow operator takes custody of the settlement asset or invoice claim and releases or refunds it according to public protocol state.
+
+This subtype is intentionally network-generic. The top-level `networks` array remains the canonical supported-network declaration for the descriptor. Network-specific implementation details MUST be represented under `implementations` and MUST NOT expand the supported network set beyond `content.networks`.
+
+When `escrow_type` is `custodial_escrow`, the descriptor MUST include the following additional fields:
+
+- `custody_authority`
+- `release_authority`
+- `refund_authority`
+- `release_rules.release_trigger`
+- `release_rules.refund_trigger`
+- `implementations`
+
+### Custodial Field Intent
+
+- `custody_authority`
+  - participant or operator role that controls the custodied escrow asset or claim while the swap is active
+- `release_authority`
+  - participant or operator role that may release the escrow after `release_rules.release_trigger` is satisfied
+- `refund_authority`
+  - participant or operator role that may refund or cancel the escrow after `release_rules.refund_trigger` is satisfied
+- `release_rules.release_trigger`
+  - public condition required before release is valid
+- `release_rules.refund_trigger`
+  - public condition required before refund or cancellation is valid
+- `implementations`
+  - non-empty array of network-specific implementation profiles
+
+Each implementation entry MUST include:
+
+- `network`
+  - one network identifier present in top-level `networks`
+
+Implementation entries MAY include network-specific fields such as:
+
+- `invoice_asset`
+- `invoice_currency`
+- `invoice_amount_rule`
+- `invoice_expiry_rule`
+- `payout_network`
+- `reference_format`
+
+If an implementation entry includes `reference_format`, it overrides the top-level `reference_format` for that implementation. Otherwise, clients MUST use the top-level `reference_format`.
+
+Clients MUST ignore implementation entries whose `network` value is not present in top-level `networks`. If no valid implementation entries remain, clients MUST treat the descriptor as unusable.
+
+### Example: Lightning Custodial Invoice
+
+```json
+{
+  "version": 1,
+  "escrow_type": "custodial_escrow",
+  "networks": ["lightning"],
+  "funding_rules": {
+    "required_confirmation": "invoice_paid"
+  },
+  "release_rules": {
+    "release_trigger": "counterparty_fiat_payment_confirmed",
+    "refund_trigger": "timeout_or_dispute_refund_decision"
+  },
+  "dispute_rules": {
+    "policy": "operator_resolved"
+  },
+  "reference_format": "bolt11_or_custodial_escrow_reference",
+  "custody_authority": "escrow_operator",
+  "release_authority": "escrow_operator",
+  "refund_authority": "escrow_operator",
+  "implementations": [
+    {
+      "network": "lightning",
+      "invoice_asset": "BTC",
+      "invoice_currency": "sats",
+      "invoice_amount_rule": "derived_from_swap_request",
+      "invoice_expiry_rule": "expires_if_unpaid_before_funding_timeout",
+      "payout_network": "lightning"
+    }
+  ],
+  "updated_at": 1775559028
+}
+```
+
+The matching event tags SHOULD include only networks present in `content.networks`:
+
+```text
+["d", "default"]
+["network", "lightning"]
+```
+
+### Custodial Lifecycle Rules
+
+For `custodial_escrow`, the escrow lifecycle SHOULD follow these phases:
+
+1. escrow reference issued
+2. custody funded or claim accepted
+3. release or refund condition satisfied
+4. released, refunded, or canceled
+
+The public swap state machine SHOULD record:
+
+- when the custodial escrow reference becomes active
+- when custody funding or claim acceptance is confirmed
+- when release authority is exercised
+- when refund or cancellation authority is exercised
+
+Raw invoices, private payment instructions, operator account details, and custody internals SHOULD stay in the companion private message lane unless explicit disclosure is required.
+
 ## Selection Rules
 
 Every agent profile should declare:
@@ -166,4 +274,4 @@ That declared escrow must be usable without out-of-band negotiation at swap time
 
 ## Open Question
 
-Additional escrow mechanisms may still need their own canonical subtype-specific schemas beyond `lightning_hold_invoice`.
+Additional escrow mechanisms beyond `lightning_hold_invoice` and `custodial_escrow` may still need their own canonical subtype-specific schemas.
