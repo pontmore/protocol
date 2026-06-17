@@ -110,6 +110,25 @@ Pontmore therefore permits a companion private message lane using Nostr Gift Wra
 The private message lane is for transport of non-public payloads.
 It does not replace the public swap request, transition, evidence, dispute, or snapshot events.
 
+### Constrained Access Channels
+
+Agents may expose constrained access channels such as USSD, SMS, or chat menus in their agent definition.
+
+Those channels are implementation surfaces. They do not alter the public swap event grammar.
+
+Actions initiated through a constrained channel SHOULD map to the same public event types:
+
+- swap requests use kind `7300`
+- state changes use kind `7301`
+- evidence references use kind `7302`
+- disputes use kind `7303`
+- operational notes use kind `7304`
+- snapshots use kind `30362`
+
+Transport-specific session identifiers, phone numbers, short codes, menu state, callback payloads, and gateway metadata MUST NOT be treated as canonical protocol state.
+
+If constrained-channel execution requires private instructions or acknowledgements, implementations SHOULD carry those details through the companion private message lane and publish only the minimum public transition, evidence reference, dispute, note, or snapshot needed for interoperability.
+
 ### Private Lane Rules
 
 - private messages SHOULD be correlated to a swap by `swap_id` or a deterministic reference derived from it

@@ -272,6 +272,20 @@ Every agent profile should declare:
 
 That declared escrow must be usable without out-of-band negotiation at swap time.
 
+## Default Escrow Coordinate
+
+When an agent definition uses `d=agent`, the default escrow descriptor SHOULD use `d=escrow` unless the Agent has a reason to publish multiple named escrow profiles.
+
+The default coordinate then has this shape:
+
+```text
+30361:<agent-pubkey>:escrow
+```
+
+Agent definitions reference this coordinate with an `a` tag as defined in [PIP-00-agent-definition.md](./PIP-00-agent-definition.md).
+
+Access channels such as USSD do not change the escrow descriptor format. A USSD-accessible Agent still references the same public escrow coordinate, while private transport details stay outside the escrow descriptor.
+
 ## Open Question
 
 Additional escrow mechanisms beyond `lightning_hold_invoice` and `custodial_escrow` may still need their own canonical subtype-specific schemas.

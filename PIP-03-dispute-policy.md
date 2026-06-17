@@ -77,6 +77,7 @@ An operator may resolve disputes by:
 - private documents
 - internal scoring logic
 - third-party payloads that contain sensitive data
+- access-channel routing details such as phone numbers, USSD session identifiers, service codes, callback payloads, and gateway metadata
 
 ## Disclosure Rules
 
