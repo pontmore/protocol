@@ -263,6 +263,116 @@ The public swap state machine SHOULD record:
 
 Raw invoices, private payment instructions, operator account details, and custody internals SHOULD stay in the companion private message lane unless explicit disclosure is required.
 
+## Canonical Subtype: `cashu_escrow`
+
+`cashu_escrow` is a canonical escrow subtype where funds are held as Cashu ecash tokens locked to the escrow operator's pubkey using NUT-11 spending conditions, with a refund pubkey and locktime. It composes on the `custodial_escrow` pattern, with the operator acting as release and refund authority, but the custody is on the bearer instrument itself rather than a relational balance held by the operator.
+
+When `escrow_type` is `cashu_escrow`, the descriptor MUST include the following additional fields:
+
+- `custody_authority`
+- `release_authority`
+- `refund_authority`
+- `release_rules.release_trigger`
+- `release_rules.refund_trigger`
+- `implementations`
+
+Each implementation entry describing the Cashu escrow lock MUST include:
+
+- `network`
+  - one network identifier present in top-level `networks`; for the Cashu escrow lock, MUST be `cashu`
+- `mint_url`
+  - URL of the Cashu mint used to issue and redeem tokens
+- `lock_mechanism`
+  - locking primitive; MUST be `p2pk_timelock` (NUT-11 P2PK with locktime and refund pubkey)
+
+Each implementation entry describing the Cashu escrow lock SHOULD include:
+
+- `invoice_expiry_rule`
+  - SHOULD be `p2pk_timelock_expiry`
+- `reference_format`
+  - SHOULD be `cashu_v4_token`
+- `payout_network`
+  - expected payout path after successful release, typically `lightning`
+
+### Cashu Field Intent
+
+- `network`
+  - network identifier for the Cashu implementation entry; MUST be `cashu` and MUST appear in top-level `networks`
+- `mint_url`
+  - identifies the Cashu mint responsible for issuing and redeeming the locked tokens
+- `lock_mechanism`
+  - declares the NUT-11 P2PK timelock primitive that binds the tokens to the operator pubkey, refund pubkey, and locktime
+- `invoice_expiry_rule`
+  - declares that the escrow expires according to the P2PK locktime
+- `reference_format`
+  - declares that the escrow is referenced as a Cashu v4 token
+- `payout_network`
+  - declares the expected payout path after successful release
+
+### Example: Cashu P2PK Timelock
+
+```json
+{
+  "version": 1,
+  "escrow_type": "cashu_escrow",
+  "networks": ["cashu", "lightning"],
+  "funding_rules": {
+    "required_confirmation": "cashu_token_locked_to_escrow"
+  },
+  "release_rules": {
+    "release_trigger": "counterparty_fiat_payment_confirmed",
+    "refund_trigger": "timeout_or_dispute_refund_decision"
+  },
+  "dispute_rules": {
+    "policy": "operator_resolved"
+  },
+  "reference_format": "cashu_v4_token",
+  "custody_authority": "escrow_operator",
+  "release_authority": "escrow_operator",
+  "refund_authority": "escrow_operator",
+  "implementations": [
+    {
+      "network": "cashu",
+      "invoice_asset": "BTC",
+      "invoice_currency": "sats",
+      "invoice_amount_rule": "derived_from_swap_request",
+      "invoice_expiry_rule": "p2pk_timelock_expiry",
+      "payout_network": "lightning",
+      "mint_url": "https://mint.example.com",
+      "lock_mechanism": "p2pk_timelock",
+      "reference_format": "cashu_v4_token"
+    }
+  ],
+  "updated_at": 1775559028
+}
+```
+
+The matching event tags SHOULD include only networks present in `content.networks`:
+
+```text
+["d", "default"]
+["network", "cashu"]
+["network", "lightning"]
+```
+
+### Cashu Lifecycle Rules
+
+For `cashu_escrow`, the escrow lifecycle SHOULD follow these phases:
+
+1. locked token reference issued
+2. lock verified against declared mint and operator pubkey
+3. release or refund condition satisfied
+4. released, refunded, or locktime-expired
+
+The public swap state machine SHOULD record:
+
+- when the locked token reference becomes active
+- when funding lock is confirmed
+- when release authority is exercised
+- when refund or cancellation authority is exercised
+
+Raw Cashu token strings, mint credentials, and preimages SHOULD stay in the companion private message lane. Only opaque references or hashes SHOULD appear in public evidence events.
+
 ## Selection Rules
 
 Every agent profile should declare:
@@ -274,4 +384,6 @@ That declared escrow must be usable without out-of-band negotiation at swap time
 
 ## Open Question
 
-Additional escrow mechanisms beyond `lightning_hold_invoice` and `custodial_escrow` may still need their own canonical subtype-specific schemas.
+Additional escrow mechanisms beyond `lightning_hold_invoice`, `custodial_escrow`, and `cashu_escrow` may still need their own canonical subtype-specific schemas.
+
+`cashu_escrow` introduces a dependency on a specific Cashu mint. Mint trust, mint selection, and mint failure modes are implementation assumptions rather than Pontmore protocol state. [Nimdolf](https://github.com/cashubtc/nuts/pull/390) is a possible future direction for mint liveness failover, but this proposal does not bind to it.
