@@ -1,6 +1,6 @@
 # Pontmore Protocol PIPs
 
-Pontmore is a Nostr-native protocol family for agent identity, capability discovery, escrow declaration, and swap lifecycle coordination.
+Pontmore is a Nostr-native protocol family for agent identity, capability discovery, escrow declaration and service interface, and swap lifecycle coordination.
 
 This repository is the canonical landing page for the Pontmore protocol and contains the `PIP` series: `Pontmore Improvement Proposal` documents that define the protocol family.
 
@@ -22,7 +22,7 @@ Read `PIP-00` through `PIP-03` first.
 
 - [PIP-01-escrow-descriptor.md](./PIP-01-escrow-descriptor.md)
   - Implementation: `Required`
-  - public escrow declaration referenced by agents and swaps
+  - public escrow declaration and standalone-capable service interface referenced by agents and swaps; the service interface is optional during swap execution
 
 - [PIP-02-swap-state-machine.md](./PIP-02-swap-state-machine.md)
   - Implementation: `Required`
@@ -55,7 +55,7 @@ The first interoperable implementation baseline is:
 - [PIP-02-swap-state-machine.md](./PIP-02-swap-state-machine.md)
 - [PIP-03-dispute-policy.md](./PIP-03-dispute-policy.md)
 
-These define the public discovery model, escrow declaration model, swap event lifecycle, and dispute boundary needed for a usable Pontmore-compatible implementation.
+These define the public discovery model, escrow declaration and service interface model, swap event lifecycle, and dispute boundary needed for a usable Pontmore-compatible implementation.
 
 
 ## Contribution
