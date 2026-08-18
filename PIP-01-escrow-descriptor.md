@@ -174,6 +174,8 @@ If `participant_count` is greater than `1`, the descriptor or referenced service
 
 `dispute_rules` declares descriptor-level compatibility facts about the applicable dispute policy.
 
+`dispute_rules.policy` MUST be a non-empty identifier for the applicable dispute policy. The canonical initial value is `pip03`, which declares conformance with [PIP-03-dispute-policy.md](./PIP-03-dispute-policy.md). Any other policy identifier MUST be defined by a later PIP or by the referenced service schema.
+
 PIP-01 does not define release, refund, cancellation, or partial-outcome semantics. For Pontmore swaps, public release and dispute lifecycle behavior is defined by [PIP-02-swap-state-machine.md](./PIP-02-swap-state-machine.md) and [PIP-03-dispute-policy.md](./PIP-03-dispute-policy.md). For service use, release and refund behavior belongs to the referenced service schema.
 
 Timeout and refund fallback metadata advertised by an escrow descriptor MUST be compatible with [PIP-03-dispute-policy.md](./PIP-03-dispute-policy.md). PIP-03 is the source of truth for timeout classes and fallback resolution policy.
@@ -200,13 +202,10 @@ Examples include:
   "networks": ["bitcoin", "lightning"],
   "funding_rules": {
     "funding_threshold": 1,
-    "participant_count": 1,
-    "required_confirmation": "invoice_paid",
-    "funding_timeout": "funding timeout"
+    "participant_count": 1
   },
   "dispute_rules": {
-    "policy": "operator_resolved",
-    "timeout_fallback": "operator_decision"
+    "policy": "pip03"
   },
   "reference_format": "bolt11_or_custodial_escrow_reference",
   "service": {
