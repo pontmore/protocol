@@ -7,6 +7,7 @@
 - Scope: public escrow compatibility and service-schema discovery
 - Related:
   - [PIP-00-agent-definition.md](./PIP-00-agent-definition.md)
+  - [PIP-02-coordination-event-chains.md](./PIP-02-coordination-event-chains.md)
 
 ## Purpose
 

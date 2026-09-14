@@ -14,12 +14,13 @@ When referring to automation working on this repository, use explicit terms such
 
 ## Spec Structure
 
-The active PIP series contains only required PIPs for the minimum interoperable core:
+The active PIP series contains three composable PIPs:
 
-- `PIP-00-agent-definition.md`: public agent capability and discovery record
-- `PIP-01-escrow-descriptor.md`: public escrow declaration referenced by agents and swaps
-- `PIP-02-swap-state-machine.md`: request, transition, evidence, dispute, note, and snapshot event lifecycle
-- `PIP-03-dispute-policy.md`: dispute classes, timeout classes, evidence boundary, and resolution modes
+- `PIP-00-agent-definition.md`: public Agent capability discovery and protocol-resource references
+- `PIP-01-escrow-descriptor.md`: expiring public escrow compatibility and service-schema descriptor
+- `PIP-02-coordination-event-chains.md`: experimental immutable coordination roots and append-only linked actions
+
+Pontmore-maintained coordination profiles use `profiles/<name>-v<version>.md`. Their canonical IDs retain the `pontmore/` namespace. They are versioned protocol specifications, not additional PIPs or executable plugins.
 
 Read `README.md` first, then read only the PIPs directly relevant to the requested change.
 
@@ -28,8 +29,8 @@ Read `README.md` first, then read only the PIPs directly relevant to the request
 When reading these specs to build or review an implementation in another repository:
 
 1. Start with `README.md` to understand the protocol definition and active PIP set.
-2. Read all required PIPs in order: `PIP-00`, `PIP-01`, `PIP-02`, then `PIP-03`.
-3. Treat Nostr identity, public agent definitions, escrow descriptors, swap events, and dispute policy as the protocol surface.
+2. Select a conformance profile and read its required PIPs in order: `PIP-00`, then `PIP-01`, then `PIP-02` where applicable.
+3. Treat Nostr identity, public Agent definitions, escrow descriptors, coordination roots, coordination actions, and pinned profiles as the protocol surface.
 4. Model operator accounts, dashboards, indexes, moderation tools, and private databases as implementation overlays, not canonical protocol state.
 5. Keep public protocol facts separate from private operator judgments, internal notes, KYC data, payment instructions, screenshots, and local account records.
 6. If an implementation needs local conveniences such as sessions, API keys, indexes, queues, or webhooks, derive them from the protocol instead of redefining the protocol around them.

@@ -47,7 +47,7 @@ An Agent definition that refers to an escrow configuration MUST also include an 
 ["a", "30361:<escrow-publisher-pubkey>:<descriptor-d-tag>", "<relay-hint>", "escrow"]
 ```
 
-The relay hint MAY be empty. An `a` tag identifies a descriptor address, not one immutable descriptor revision.
+The relay hint MAY be empty. An `a` tag identifies a descriptor address, not one immutable descriptor revision. A coordination that accepts a descriptor binds the exact descriptor event as specified by [PIP-02](./PIP-02-coordination-event-chains.md).
 
 ## Content Schema
 
