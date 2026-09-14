@@ -3,20 +3,16 @@
 ## Status
 
 - Status: Draft
-- Implementation: Required
-- Scope: public escrow interop descriptor for discovery, compatibility, and service schema discovery
+- Implementation: Required for the Escrow Discovery and Swap Coordination conformance profiles
+- Scope: public escrow compatibility and service-schema discovery
 - Related:
   - [PIP-00-agent-definition.md](./PIP-00-agent-definition.md)
-  - [PIP-02-swap-state-machine.md](./PIP-02-swap-state-machine.md)
-  - [PIP-03-dispute-policy.md](./PIP-03-dispute-policy.md)
 
 ## Purpose
 
-This document defines the public escrow descriptor event referenced by agent definitions and swaps.
+This document defines the public escrow descriptor event referenced by Agent definitions and coordination roots.
 
-An escrow descriptor is a compatibility object. It declares the public facts needed to discover an escrow configuration, decide whether a client can use it, reference it from Pontmore swap flows, and locate the service schema.
-
-PIP-01 does not define escrow service behavior. Internal state machines, endpoint contracts, authentication protocols, request payloads, response payloads, error formats, and operation-specific authorization rules belong to the referenced service schema.
+An escrow descriptor is a compatibility object. It identifies an escrow mechanism, its supported networks, its selection lifetime, and an optional machine-readable service schema. It is not an escrow service contract, administrative state machine, fee language, or record of an escrow instance.
 
 ## Event Type
 
@@ -24,252 +20,147 @@ PIP-01 does not define escrow service behavior. Internal state machines, endpoin
 - addressable
 - `d` tag: stable identifier for one escrow configuration
 
-## Function
-
-The escrow descriptor tells counterparties and operators:
-
-- what escrow mechanism is used
-- which settlement or invoice networks are supported
-- what public funding and dispute rules are advertised
-- how the escrow instance is referenced
-- what timeout and dispute assumptions apply
-- where to find the service schema, if one is advertised
-
-The public swap lifecycle remains defined by [PIP-02-swap-state-machine.md](./PIP-02-swap-state-machine.md). Dispute and timeout fallback policy remains defined by [PIP-03-dispute-policy.md](./PIP-03-dispute-policy.md).
-
 ## Minimum Content
 
-`content` is JSON and MUST be versioned.
-
-Minimum expected fields:
+`content` MUST be a JSON object with these fields:
 
 - `version`
+  - integer descriptor schema version
 - `escrow_type`
+  - non-empty, lowercase mechanism identifier
 - `networks`
-- `funding_rules`
-- `dispute_rules`
-- `reference_format`
-- `updated_at`
+  - non-empty array of lowercase settlement or invoice network identifiers
+- `expires_at`
+  - Unix timestamp after which the descriptor cannot be selected for a new coordination
 
-## Descriptor Use Levels
+The descriptor MAY include `service` as defined below.
 
-An escrow descriptor has two intended use levels:
-
-- **compatibility and discovery** - the descriptor declares which networks, assets, reference formats, funding rules, and dispute policy an escrow supports, so that agents and swaps can select it
-- **service schema discovery** - the descriptor additionally points to a machine-readable schema
-
-A descriptor that omits the `service` block is sufficient for compatibility and discovery and for use inside Pontmore swap flows where the swap state machine in [PIP-02-swap-state-machine.md](./PIP-02-swap-state-machine.md) carries public execution state.
-
-A descriptor that includes a `service` block does not make PIP-01 the source of truth for service behavior. PIP-01 only declares `service.schema`. Clients MUST validate the referenced schema before relying on any service behavior.
-
-## Service Schema
-
-The optional `service` content field contains only the service schema pointer.
-
-When `service` is present, it MUST contain only:
-
-- `schema`
-  - object containing the service schema pointer
-- `schema.type`
-  - schema language identifier
-  - initial supported values are `openapi` and `asyncapi`
-- `schema.url`
-  - absolute `https://` URL for the schema artifact
-
-Initial PIP-01 schema types are intentionally limited to:
-
-- `openapi`
-- `asyncapi`
-
-`smithy`, `protobuf`, and generic `json` schema pointers are out of scope for the initial registry. They MAY be added by a later PIP or revision if there is concrete interoperability need.
-
-### Schema Requirements
-
-The referenced schema MUST define all service behavior, including:
-
-- transport or protocol
-- endpoint or server information
-- authentication
-- operations
-- request payloads
-- response payloads
-- error format
-- operation-specific authorization rules
-
-If the service exposes status values, operation names, funding flows, release decisions, split outcomes, idempotency keys, or participant-binding rules, those details MUST be defined by the referenced schema. They are not canonical PIP-01 protocol state.
-
-### Schema Fetch Safety
-
-Clients MUST apply schema fetch safety checks before dereferencing `service.schema.url`.
-
-The schema URL:
-
-- MUST use `https://`
-- MUST NOT resolve to private, loopback, link-local, multicast, or otherwise unsafe network destinations
-- SHOULD resolve to an immutable or versioned schema artifact
-
-Clients SHOULD use bounded fetches, redirect limits, content-type checks, and response-size limits when retrieving schemas.
-
-Clients MAY reject unsupported schema types, unsupported schema-language versions, unsafe schema URLs, mutable schema URLs, or schemas that do not match the client's trust and capability requirements.
-
-## Public/Private Boundary
-
-The descriptor is public protocol state. It MUST NOT include:
-
-- wallet identifiers
-- custody backend identifiers
-- private payment credentials
-- internal account details
-- private routing state
-- operator-internal API keys or bearer secrets
-- private payment instructions
-- raw invoices
-- raw Cashu token strings
-- settlement secrets
-- internal review notes
-
-These are operator-layer implementation details or private execution payloads. Their absence is what allows the same descriptor to be published openly without exposing operator internals.
-
-Pontmore implementations SHOULD carry non-public execution payloads through private channels such as the companion Gift Wrap lane described in [PIP-02-swap-state-machine.md](./PIP-02-swap-state-machine.md).
-
-## Network Declaration
-
-An escrow descriptor MUST declare every settlement or invoice network supported by the escrow configuration.
-
-The canonical content field is:
-
-- `networks`
-  - non-empty array of lowercase network identifiers
-  - examples: `bitcoin`, `lightning`, `cashu`
-
-Each value in `networks` SHOULD also be emitted as a repeated `network` tag for relay filtering:
-
-```text
-["network", "bitcoin"]
-["network", "lightning"]
-```
-
-The `networks` content array is the canonical declaration. The repeated tags are an index and discovery aid. Clients MUST NOT treat a repeated `network` tag as supported unless it also appears in `content.networks`.
-
-## Funding Rules
-
-`funding_rules` declares descriptor-level compatibility facts about how an escrow expects funding to be satisfied.
-
-Escrow funding is described as an `m of n` requirement.
-
-- `funding_rules.funding_threshold` is `m`: the minimum number of declared funding participants whose funding must be confirmed before the escrow is considered funded
-- `funding_rules.participant_count` is `n`: the total number of declared funding participants for the escrow
-
-`funding_threshold` MUST be an integer greater than or equal to `1`.
-
-`participant_count` MUST be an integer greater than or equal to `funding_threshold`.
-
-A `1 of 1` funding rule represents a single-funder escrow. A `2 of 2` funding rule represents a two-party escrow where both declared funders must fund. A `1 of 2` funding rule represents one participant funding on behalf of a two-party escrow. Other values represent threshold funding.
-
-The descriptor declares only the funding cardinality required for compatibility. PIP-01 does not define a canonical standalone funding state machine. The referenced service schema MUST define how participants are identified, how funding instructions are retrieved, how partial funding is represented, and how timeout cancellation or refund works.
-
-If `participant_count` is greater than `1`, the descriptor or referenced service schema MUST define how partially funded escrows can be canceled or refunded after timeout. A descriptor MUST NOT imply that partially funded capital can remain locked indefinitely with no timeout or fallback path.
-
-## Dispute Rules and Timeout Fallback
-
-`dispute_rules` declares descriptor-level compatibility facts about the applicable dispute policy.
-
-`dispute_rules.policy` MUST be a non-empty identifier for the applicable dispute policy. The canonical initial value is `pip03`, which declares conformance with [PIP-03-dispute-policy.md](./PIP-03-dispute-policy.md). Any other policy identifier MUST be defined by a later PIP or by the referenced service schema.
-
-PIP-01 does not define release, refund, cancellation, or partial-outcome semantics. For Pontmore swaps, public release and dispute lifecycle behavior is defined by [PIP-02-swap-state-machine.md](./PIP-02-swap-state-machine.md) and [PIP-03-dispute-policy.md](./PIP-03-dispute-policy.md). For service use, release and refund behavior belongs to the referenced service schema.
-
-Timeout and refund fallback metadata advertised by an escrow descriptor MUST be compatible with [PIP-03-dispute-policy.md](./PIP-03-dispute-policy.md). PIP-03 is the source of truth for timeout classes and fallback resolution policy.
-
-When a descriptor advertises a timeout class, the descriptor or referenced service schema MUST identify the applicable fallback resolution required by PIP-03. A `mutual_consent`-only timeout path with no fallback is not a valid terminal policy.
-
-## Reference Format
-
-`reference_format` declares how swaps and clients refer to an escrow instance or escrow claim.
-
-Examples include:
-
-- `bolt11`
-- `bolt11_or_custodial_escrow_reference`
-- `cashu_v4_token`
-- opaque service-defined references
-
-## Descriptor Example
+Example:
 
 ```json
 {
   "version": 1,
-  "escrow_type": "custodial_escrow",
-  "networks": ["bitcoin", "lightning"],
-  "funding_rules": {
-    "funding_threshold": 1,
-    "participant_count": 1
-  },
-  "dispute_rules": {
-    "policy": "pip03"
-  },
-  "reference_format": "bolt11_or_custodial_escrow_reference",
+  "escrow_type": "cashu_escrow",
+  "networks": ["cashu"],
   "service": {
     "schema": {
       "type": "openapi",
-      "url": "https://escrow.example.com/pontmore-escrow.openapi.json"
+      "url": "https://example.com/escrow-v1.json"
     }
   },
-  "updated_at": 1775559028
+  "expires_at": 1780000000
 }
 ```
 
-The matching event tags SHOULD include:
+The event MUST include a `d` tag. Each value in `content.networks` SHOULD also appear as a repeated `t` tag for relay filtering:
 
 ```text
-["d", "default"]
-["network", "bitcoin"]
-["network", "lightning"]
+["d", "cashu-main"]
+["t", "pontmore-network:cashu"]
 ```
 
-## Canonical Subtype: `lightning_hold_invoice`
+`content.networks` is canonical. Clients MUST reject a descriptor when its `pontmore-network:` tags claim values absent from `content.networks`.
 
-`lightning_hold_invoice` is a canonical escrow subtype for swaps that use a Lightning hold invoice as the escrow lock.
+## Descriptor Lifecycle
 
-When `escrow_type` is `lightning_hold_invoice`, `networks` MUST include `lightning`. The descriptor MUST expose enough public compatibility data for clients to know that the escrow reference is a Lightning hold-invoice reference and to evaluate the advertised funding, dispute, timeout, and service-schema compatibility.
+A descriptor is selectable for a new coordination only when:
 
-Raw invoice payloads, settlement secrets, preimages, and private payout instructions MUST stay out of the public descriptor. Subtype-specific service mechanics belong to the referenced service schema.
+- it is the current addressable event at its kind, pubkey, and `d` coordinate; and
+- the client's validation time is earlier than `expires_at`.
 
-## Canonical Subtype: `custodial_escrow`
+The publisher renews or changes a descriptor by republishing the addressable event. The publisher immediately expires it by publishing a replacement whose `expires_at` is not later than the replacement event's `created_at`.
 
-`custodial_escrow` is a canonical escrow subtype for swaps where an escrow operator takes custody of the settlement asset or invoice claim and releases or refunds it according to public protocol state or the referenced service schema.
+A coordination MUST bind both the descriptor coordinate and the exact descriptor event ID it accepted. Republishing or expiring the address does not alter an existing coordination.
 
-This subtype is network-generic. The top-level `networks` array is the canonical supported-network declaration for the descriptor. Subtype-specific service mechanics belong to the referenced service schema.
+Replacement pointers, disable reasons, operator-facing status, and administrative history are outside PIP-01.
 
-Raw invoices, private payment instructions, operator account details, custody internals, and private reconciliation records SHOULD stay out of the public descriptor.
+## Service Schema
 
-## Canonical Subtype: `cashu_escrow`
+When `service` is present, it MUST contain only `schema`. `service.schema` MUST contain:
 
-`cashu_escrow` is a canonical escrow subtype where funds are held as Cashu ecash tokens locked to the escrow operator's pubkey using NUT-11 spending conditions, with a refund pubkey and locktime.
+- `type`
+  - `openapi` or `asyncapi`
+- `url`
+  - absolute `https://` URL for the schema artifact
 
-When `escrow_type` is `cashu_escrow`, `networks` MUST include `cashu`. The descriptor MUST expose enough public compatibility data for clients to know that the escrow reference is a Cashu escrow reference and to evaluate the advertised funding, dispute, timeout, and service-schema compatibility. Subtype-specific service mechanics belong to the referenced service schema.
+The referenced schema owns all service behavior, including:
 
-Raw Cashu token strings, mint credentials, preimages, and private payout instructions SHOULD stay out of the public descriptor. Only opaque references or hashes SHOULD appear in public evidence events unless targeted disclosure is required by the applicable dispute policy.
+- participant creation and binding
+- transport, endpoints, authentication, and authorization
+- funding instructions, funding status, and partial-funding recovery
+- release, refund, cancellation, and partial outcomes
+- idempotency, errors, and reference formats
+- resolver binding and authorization
+- supported dispute-resolution effects
+- evidence-submission operations
+- timeout and recovery behavior
+- reconciliation
+- fees and exact quotes
+
+Clients MUST validate the referenced schema before relying on service behavior. A descriptor without `service.schema` supplies compatibility facts but no PIP-01 service interface.
+
+Additional schema languages MAY be added by a later revision when concrete interoperability requires them. Clients MAY reject an unsupported schema type or version.
+
+### Schema Fetch Safety
+
+Clients MUST apply fetch-safety checks before dereferencing `service.schema.url`.
+
+The URL:
+
+- MUST use `https://`
+- MUST NOT resolve to a private, loopback, link-local, multicast, or otherwise unsafe destination
+- SHOULD identify an immutable or versioned artifact
+
+Clients SHOULD apply bounded fetches, redirect limits, content-type checks, and response-size limits. They MAY reject mutable or unsafe schema URLs and schemas outside their trust or capability requirements.
+
+## Fees and Quotes
+
+PIP-01 does not define a fee-calculation language. A descriptor MUST NOT require clients to derive an exact charge from a mutable pricing formula.
+
+When a service charges a fee or the economic terms can vary, its schema SHOULD define a signed, expiring quote containing exact amounts. The schema owns the quote format and signature verification rules. A coordination root binds the accepted quote through its `commitments.quote` field; it does not copy a mutable pricing policy from the descriptor.
+
+## Public and Private Boundary
+
+The descriptor is public protocol state. It MUST NOT include:
+
+- wallet or custody-backend identifiers
+- private credentials, API keys, or bearer secrets
+- private payment or payout instructions
+- raw invoices or Cashu token strings
+- settlement secrets or preimages
+- internal routing, review, scoring, or reconciliation records
+- evidence payloads
+
+Those facts belong in private application channels or in the service represented by the referenced schema.
+
+## Escrow Types
+
+The initial escrow type identifiers are:
+
+- `lightning_hold_invoice`
+  - `networks` MUST include `lightning`
+- `custodial_escrow`
+  - network-generic; `networks` declares the supported networks
+- `cashu_escrow`
+  - `networks` MUST include `cashu`
+
+These identifiers communicate mechanism compatibility only. Subtype operations, reference formats, funding rules, timeouts, dispute behavior, and settlement mechanics belong to the referenced service schema or the selected coordination profile.
 
 ## Selection Rules
 
-Every agent profile should declare:
+Before selecting a descriptor, a client MUST validate:
 
-- at least one usable escrow configuration
-- one default escrow configuration
+- the event signature and address
+- the descriptor version
+- `expires_at`
+- the required network and escrow type
+- any service-schema requirements of the selected coordination profile
 
-That declared escrow must be usable without out-of-band negotiation at swap time.
+For a service-backed flow, the client MUST also support and validate `service.schema`.
 
-For service use, an application SHOULD select a descriptor whose `service.schema.type` is supported, whose `service.schema.url` passes fetch-safety checks, and whose referenced schema matches the application's supported capabilities and trust constraints.
-
-A descriptor without `service.schema` provides no PIP-01 service schema pointer.
+A client MUST NOT infer availability, solvency, custody safety, resolver trustworthiness, or successful operation from a signed descriptor. Those are application trust decisions, not PIP-01 facts.
 
 ## Open Questions
 
-1. **Additional schema types**
-   - Should future revisions add `smithy`, `protobuf`, or another schema type once a concrete implementation needs it?
-
-2. **Funding cardinality metadata**
-   - What additional descriptor-level metadata, if any, is needed for clients to reject unsafe multi-party funding before fetching the service schema?
-
-3. **Custodial accountability references**
-   - Should `custodial_escrow` descriptors advertise a public accountability reference, such as proof of reserve, attestation, or collateral, without leaking operator-private implementation details?
+1. Which additional schema languages have demonstrated interoperability need?
+2. Does any compatibility fact need relay filtering strongly enough to justify a new canonical descriptor field rather than remaining in a service schema?
