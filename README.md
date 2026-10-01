@@ -87,3 +87,7 @@ When contributing:
 5. Update this README when adding, removing, or renumbering a PIP or conformance profile.
 
 If a design is unresolved, document it as draft or experimental rather than implying finality. Keep the repository small and avoid auxiliary process documents unless they are explicitly needed.
+
+## License
+
+All Pontmore specifications, including PIPs and coordination profiles, are released into the public domain under [CC0 1.0 Universal](LICENSE).
