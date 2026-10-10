@@ -11,7 +11,7 @@
 
 This profile defines the public terms and actions needed to reconstruct a bilateral fiat/Bitcoin swap on a PIP-02 coordination event chain.
 
-It preserves `swap` as the application domain term. It does not define matching, offers, price discovery, bank or mobile-money instructions, escrow service operations, private evidence evaluation, or user experience.
+It preserves `swap` as the application domain term. It defines standing swap offers as NIP-69 peer-to-peer order events. It does not define matching, pricing, exchange-rate calculation, bank or mobile-money instructions, escrow service operations, private evidence evaluation, or user experience.
 
 ## Participant Roles
 
@@ -75,9 +75,92 @@ This profile permits two commitment keys:
 - `private_terms`
   - commits to the exact bytes of the agreed private payment terms
 - `quote`
-  - commits to the exact bytes of the signed, expiring quote
+  - commits to the NIP-69 offer event when terms come from an offer (see [Offers](#offers))
 
 Both use PIP-02's `sha256-bytes@1` algorithm. Before publishing `core/accept`, the accepting participant MUST possess the committed bytes, verify their digest, validate any quote signature under the accepted service schema, confirm that the quote matches the root terms, and confirm that the quote has not expired.
+
+## Offers
+
+A standing swap offer is a [NIP-69](https://github.com/nostr-protocol/nips/blob/master/69.md) kind `38383` addressable event signed by the `swap/agent` identity key. It advertises a price and fiat-amount range for one currency and direction so that other Nostr P2P clients can discover it.
+
+Offers are optional. A root MAY be proposed without one. When a root's terms come from an offer, the root binds the exact offer event through `commitments.quote`.
+
+### Offer Event
+
+- kind: `38383`
+- addressable
+- `d`: `pontmore/swap@1:<fiat-currency>:<k>`
+
+One offer per currency and direction. The addressable `d` slot replaces earlier offers at the same coordinate.
+
+NIP-69 tags carry the shared listing data:
+
+| Tag | Value |
+| --- | --- |
+| `k` | `sell` when `fiat_to_btc` (Agent provides Bitcoin); `buy` when `btc_to_fiat` |
+| `f` | ISO 4217 fiat currency code |
+| `s` | `pending` while active; `canceled` to withdraw |
+| `amt` | `0` (Bitcoin amount is derived from `price`, not fixed) |
+| `fa` | minimum and maximum fiat amount |
+| `pm` | human-readable payment method names |
+| `premium` | informational premium percentage (optional) |
+| `network` | Bitcoin network (`mainnet`, `testnet`, etc.) |
+| `layer` | settlement layer, matching `terms.bitcoin.network` |
+| `expires_at` | Unix timestamp after which the offer is no longer selectable |
+| `expiration` | relay deletion timestamp (NIP-40) |
+| `y` | `pontmore` |
+| `z` | `order` |
+
+Pontmore profile tags, ignored by other NIP-69 clients, carry what binding needs:
+
+| Tag | Value |
+| --- | --- |
+| `protocol` | `pontmore/swap@1` |
+| `price` | exact fiat amount per BTC, as a positive base-10 decimal string |
+| `channels` | one tag per versioned payment-channel identifier |
+| `a` | escrow descriptor address `30361:<publisher-pubkey>:<descriptor-d-tag>` with optional relay hint and `escrow` marker |
+| `p` | resolver pubkey with optional relay hint and `core/resolver` role |
+
+`content` MUST be empty. Payment instructions MUST NOT appear in the offer.
+
+### Direction Mapping
+
+| `terms.direction` | `k` |
+| --- | --- |
+| `fiat_to_btc` | `sell` |
+| `btc_to_fiat` | `buy` |
+
+### Binding Rules
+
+A root's `commitments.quote` matches the offer only if:
+
+1. the offer is signed by the root's `swap/agent` pubkey;
+2. `s` is `pending` and `expires_at` is later than the root's `created_at`;
+3. `k` matches `terms.direction` per the direction mapping;
+4. `f` matches `terms.fiat.currency`;
+5. `layer` matches `terms.bitcoin.network`;
+6. `terms.payment_channel` appears in the offer's `channels`;
+7. `terms.fiat.amount` is within the offer's `fa` range (inclusive);
+8. `terms.bitcoin.amount` equals `floor(fiat.amount × 100000000 ÷ price)`;
+9. the offer's `a` escrow address matches the root's descriptor coordinate;
+10. the offer's `p` resolver matches the root's `core/resolver` binding.
+
+The `sha256-bytes@1` digest of the NIP-01 canonical serialization of the offer event equals `sha256:` followed by the offer event ID. Before publishing `core/accept`, the accepting participant MUST verify the offer event signature, confirm the digest matches `commitments.quote`, and check all binding rules above.
+
+### Freshness and Privacy
+
+An Agent MAY decline a root whose quote is superseded by a later offer at the same `d` coordinate, or whose price is materially worse for the Agent than its current price.
+
+Agents SHOULD keep offer lifetimes short to reduce stale-quote risk.
+
+Agents SHOULD NOT publish `fa` maximums that reveal exact liquidity. An Agent MAY round a liquidity-capped maximum down to a coarse value.
+
+### Offer Open Questions
+
+1. Should the price-freshness rule be normative (for example a maximum tolerance), or remain Agent policy?
+2. Should `channels` reference a named registry, or remain any versioned identifier?
+3. Should NIP-40 `expiration` on a withdrawn (`canceled`) offer be required so relays drop it?
+4. Should binding-rule conformance vectors be added before the profile stabilizes?
 
 ## Direction-Derived Roles
 
@@ -199,5 +282,8 @@ Before this profile can be stabilized, shared vectors MUST cover at least:
 - sibling forks at every economic gate
 - attempted settlement and refund in the same history
 - public/private data separation
+- offer binding with matching and non-matching fields
+- expired and superseded offers
+- Bitcoin amount derived from price
 
 Those vectors are not yet included. Implementations MUST describe support for this profile as experimental.

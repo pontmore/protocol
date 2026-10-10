@@ -24,7 +24,7 @@ versioned coordination profile
 application-specific lifecycle
 ```
 
-`Coordination` is protocol terminology. Applications retain their domain language. A PontSwap coordination remains a `swap`; a PactAgent coordination may remain a `service agreement`.
+`Coordination` is protocol terminology. Applications retain their domain language.
 
 PIP-02 is not a universal workflow language. Profiles are specifications and schemas, not remotely downloaded executable code.
 

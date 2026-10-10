@@ -49,12 +49,12 @@ Pontmore standardizes:
 - shared authorization, replay, fork, expiry, and economic-outcome invariants
 - explicit public references and commitments to selected protocol resources
 
-Versioned capability and coordination profiles define domain-specific facts and actions.
+Versioned capability and coordination profiles define domain-specific facts and actions. A profile MAY define a public offer format.
 
 Applications and services own:
 
 - execution and private payload transport
-- offers, quotes, and business policy
+- pricing, liquidity, and business policy
 - service operations and internal state
 - operator accounts, dashboards, indexes, queues, and databases
 - moderation, reputation, evidence evaluation, and private investigation
