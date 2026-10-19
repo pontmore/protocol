@@ -24,7 +24,7 @@ versioned coordination profile
 application-specific lifecycle
 ```
 
-`Coordination` is protocol terminology. Applications retain their domain language. A PontSwap coordination remains a `swap`; a PactAgent coordination may remain a `service agreement`.
+`Coordination` is protocol terminology. Applications retain their domain language.
 
 PIP-02 is not a universal workflow language. Profiles are specifications and schemas, not remotely downloaded executable code.
 
@@ -305,7 +305,7 @@ A profile MUST be a stable specification that implementations can validate witho
 
 ### [`pontmore/swap@1`](./profiles/swap-v1.md)
 
-`pontmore/swap@1` preserves the application term `swap`. It defines swap-specific terms such as direction, fiat amount and currency, Bitcoin amount, unit and network, payment-channel constraints, and swap deadlines.
+`pontmore/swap@1` preserves the application term `swap`. It defines swap-specific terms such as direction, fiat amount and currency, Bitcoin amount, unit and network, payment-channel constraints, swap deadlines, and standing swap offers as NIP-69 peer-to-peer order events.
 
 The profile owns these swap actions:
 

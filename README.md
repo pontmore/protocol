@@ -10,7 +10,7 @@ In this repository, `Agent` refers to a Pontmore protocol participant that publi
 
 References to automation working on this repository are written explicitly as `AI agent`, `coding assistant`, or `repository automation`.
 
-`Coordination` is the generic PIP-02 protocol term. Applications retain their own domain language: a PontSwap object remains a `swap`, while another application may call its object a `service agreement`.
+`Coordination` is the generic PIP-02 protocol term. Applications retain their own domain language: one application may call its coordination object a `swap`, while another may call its object a `service agreement`.
 
 ## Active PIP Series
 
@@ -49,12 +49,12 @@ Pontmore standardizes:
 - shared authorization, replay, fork, expiry, and economic-outcome invariants
 - explicit public references and commitments to selected protocol resources
 
-Versioned capability and coordination profiles define domain-specific facts and actions.
+Versioned capability and coordination profiles define domain-specific facts and actions. A profile MAY define a public offer format.
 
 Applications and services own:
 
 - execution and private payload transport
-- offers, quotes, and business policy
+- pricing, liquidity, and business policy
 - service operations and internal state
 - operator accounts, dashboards, indexes, queues, and databases
 - moderation, reputation, evidence evaluation, and private investigation
