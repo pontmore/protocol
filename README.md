@@ -10,7 +10,7 @@ In this repository, `Agent` refers to a Pontmore protocol participant that publi
 
 References to automation working on this repository are written explicitly as `AI agent`, `coding assistant`, or `repository automation`.
 
-`Coordination` is the generic PIP-02 protocol term. Applications retain their own domain language: a PontSwap object remains a `swap`, while another application may call its object a `service agreement`.
+`Coordination` is the generic PIP-02 protocol term. Applications retain their own domain language: one application may call its coordination object a `swap`, while another may call its object a `service agreement`.
 
 ## Active PIP Series
 

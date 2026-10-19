@@ -118,7 +118,7 @@ Clients SHOULD apply bounded fetches, redirect limits, content-type checks, and 
 
 PIP-01 does not define a fee-calculation language. A descriptor MUST NOT require clients to derive an exact charge from a mutable pricing formula.
 
-When a service charges a fee or the economic terms can vary, its schema SHOULD define a signed, expiring quote containing exact amounts. The schema owns the quote format and signature verification rules. A coordination root binds the accepted quote through its `commitments.quote` field; it does not copy a mutable pricing policy from the descriptor.
+When a service charges a fee or the economic terms can vary, its schema SHOULD define a signed, expiring quote containing exact amounts. The schema owns the quote format and signature verification rules, unless the pinned coordination profile defines a public offer as the quote for the coordination's economic terms. In that case the profile owns the offer format and binding rules. A service-schema quote that coexists with such a public offer MUST use a distinct profile-defined commitment key; it MUST NOT reuse the offer's commitment key. A coordination root binds the accepted quote through its profile-defined commitment field; it does not copy a mutable pricing policy from the descriptor.
 
 ## Public and Private Boundary
 

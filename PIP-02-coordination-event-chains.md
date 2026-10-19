@@ -305,7 +305,7 @@ A profile MUST be a stable specification that implementations can validate witho
 
 ### [`pontmore/swap@1`](./profiles/swap-v1.md)
 
-`pontmore/swap@1` preserves the application term `swap`. It defines swap-specific terms such as direction, fiat amount and currency, Bitcoin amount, unit and network, payment-channel constraints, and swap deadlines.
+`pontmore/swap@1` preserves the application term `swap`. It defines swap-specific terms such as direction, fiat amount and currency, Bitcoin amount, unit and network, payment-channel constraints, swap deadlines, and standing swap offers as NIP-69 peer-to-peer order events.
 
 The profile owns these swap actions:
 
